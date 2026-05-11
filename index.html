@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Pulizie Garage"/>
+<title>HACCP Pulizie — Pizzeria Garage</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+// ── FIREBASE CONFIG HACCP-GARAGE ──
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAPKjVwWancRk0mLGwQ5yL0j3baRPUIFAY",
+  authDomain: "haccp-garage.firebaseapp.com",
+  projectId: "haccp-garage",
+  storageBucket: "haccp-garage.firebasestorage.app",
+  messagingSenderId: "508467525501",
+  appId: "1:508467525501:web:5b44fd53e11bb0c0f73e14"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+</script>
+
+<style>
+:root {
+  --bg: #0e0e11;
+  --surface: #17171c;
+  --surface2: #1e1e26;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f4;
+  --muted: #8888a0;
+  --accent: #ff4500;
+  --accent2: #ff6a35;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --radius: 14px;
+  --radius-lg: 20px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-logo {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+.header-title { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.header-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.header-date {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  text-align: right;
+}
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.nav-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ── MAIN CONTENT ── */
+.main { padding: 14px 16px 100px; }
+
+/* ── STATO GIORNALIERO ── */
+.stato-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stato-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stato-dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.stato-dot.pending { background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: pulse 2s infinite; }
+.stato-dot.missing { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.stato-text { font-size: 13px; font-weight: 500; }
+.stato-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* ── OPERATORE SELECTOR ── */
+.op-selector {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.op-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 700; }
+.op-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.op-btn {
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; text-align: center;
+  transition: all 0.15s;
+  font-family: 'DM Mono', monospace;
+}
+.op-btn.selected {
+  border-color: var(--accent);
+  background: rgba(255,69,0,0.15);
+  color: var(--accent2);
+}
+
+/* ── CARD SEZIONE ── */
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.section-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.section-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.section-icon.daily { background: rgba(255,69,0,0.15); }
+.section-icon.weekly { background: rgba(59,130,246,0.15); }
+.section-icon.monthly { background: rgba(34,197,94,0.15); }
+.section-icon.olio { background: rgba(245,158,11,0.15); }
+.section-icon.tappetini { background: rgba(168,85,247,0.15); }
+.section-title-wrap { flex: 1; }
+.section-title { font-size: 14px; font-weight: 700; }
+.section-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.section-badge {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.section-badge.done { background: rgba(34,197,94,0.15); color: var(--ok); border-color: rgba(34,197,94,0.3); }
+.section-badge.partial { background: rgba(245,158,11,0.15); color: var(--warn); border-color: rgba(245,158,11,0.3); }
+.chevron { color: var(--muted); font-size: 12px; transition: transform 0.2s; }
+.chevron.open { transform: rotate(180deg); }
+
+.section-body { display: none; border-top: 1px solid var(--border); }
+.section-body.open { display: block; }
+
+/* ── CHECKLIST ITEMS ── */
+.check-actions {
+  display: flex; gap: 8px;
+  padding: 10px 14px 6px;
+}
+.check-action-btn {
+  font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--muted); cursor: pointer;
+  transition: all 0.12s;
+}
+.check-action-btn:hover { color: var(--text); border-color: var(--border2); }
+
+.checklist { padding: 0 10px 8px; }
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid var(--border);
+}
+.check-item:last-child { border-bottom: none; }
+.check-item:active { background: var(--surface2); }
+
+.check-box {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border2);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  background: var(--surface2);
+}
+.check-box.checked {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+.check-tick { display: none; color: #fff; font-size: 13px; font-weight: 900; }
+.check-box.checked .check-tick { display: block; }
+
+.check-label { font-size: 14px; font-weight: 500; flex: 1; }
+.check-label.checked { color: var(--muted); text-decoration: line-through; }
+
+/* ── FORM EXTRA (olio, tappetini) ── */
+.form-body { padding: 12px 14px 14px; }
+.form-row { margin-bottom: 12px; }
+.form-label {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--muted); margin-bottom: 6px; display: block;
+}
+.form-select, .form-input, .form-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 11px 12px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-select:focus, .form-input:focus, .form-textarea:focus {
+  border-color: var(--accent);
+}
+.form-textarea { min-height: 70px; resize: vertical; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── NOTE GENERALI ── */
+.note-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+/* ── SUBMIT BAR ── */
+.submit-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  z-index: 200;
+}
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.2px;
+}
+.submit-btn:active { transform: scale(0.98); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.submit-btn.loading { opacity: 0.7; }
+
+/* ── STORICO ── */
+.storico-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.storico-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.storico-date { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+.storico-op { font-size: 12px; font-weight: 700; color: var(--accent2); }
+.storico-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+}
+.storico-badge.ok { background: rgba(34,197,94,0.15); color: var(--ok); }
+.storico-badge.ko { background: rgba(239,68,68,0.15); color: var(--danger); }
+.storico-badge.partial { background: rgba(245,158,11,0.15); color: var(--warn); }
+.storico-detail { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px);
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 999px; padding: 10px 18px;
+  font-size: 13px; font-weight: 600;
+  z-index: 1000; opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok { border-color: rgba(34,197,94,0.4); color: var(--ok); }
+.toast.err { border-color: rgba(239,68,68,0.4); color: var(--danger); }
+
+/* ── FIREBASE SETUP SCREEN ── */
+.setup-screen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 400px; width: 100%;
+}
+.setup-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.setup-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+.setup-step {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 12px; color: var(--muted); line-height: 1.6;
+}
+.setup-step b { color: var(--text); }
+.setup-input {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 10px;
+  color: var(--text); font-size: 13px;
+  padding: 10px 12px; margin-bottom: 8px;
+  font-family: 'DM Mono', monospace; outline: none;
+}
+.setup-input:focus { border-color: var(--accent); }
+.setup-btn {
+  width: 100%; padding: 14px; background: var(--accent);
+  border: none; border-radius: 10px; color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+}
+.hidden { display: none !important; }
+
+/* ── EMPTY STATE ── */
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ── LOADING ── */
+.loading-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(14,14,17,0.7);
+  z-index: 500; align-items: center; justify-content: center;
+}
+.loading-overlay.show { display: flex; }
+.loading-spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── CONTATORE PROGRESS ── */
+.progress-bar-wrap {
+  height: 4px; background: var(--border);
+  border-radius: 2px; margin: 0 14px 8px;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: var(--accent); transition: width 0.3s;
+}
+</style>
+</head>
+<body>
+
+
+
+<!-- APP PRINCIPALE -->
+<div id="appMain">
+
+  <div class="header">
+    <div class="header-logo">GRG</div>
+    <div>
+      <div class="header-title">Pulizie HACCP</div>
+      <div class="header-sub">Pizzeria Hamburgheria Garage</div>
+    </div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="compila" onclick="switchTab('compila')">Compila</div>
+    <div class="nav-tab" data-tab="storico" onclick="switchTab('storico')">Storico</div>
+    <div class="nav-tab" data-tab="operatori" onclick="switchTab('operatori')">Operatori</div>
+  </div>
+
+  <!-- ===== TAB: COMPILA ===== -->
+  <div id="tab-compila" class="main">
+
+    <!-- STATO GIORNALIERO -->
+    <div class="stato-bar">
+      <div class="stato-dot" id="statoDot"></div>
+      <div>
+        <div class="stato-text" id="statoText">Verifica in corso...</div>
+        <div class="stato-sub" id="statoSub"></div>
+      </div>
+    </div>
+
+    <!-- SELETTORE OPERATORE -->
+    <div class="op-selector">
+      <div class="op-label">Operatore</div>
+      <div class="op-grid" id="opGrid"></div>
+    </div>
+
+    <!-- GIORNALIERE -->
+    <div class="section-card">
+      <div class="section-header" onclick="toggleSection('daily')">
+        <div class="section-icon daily">🧹</div>
+        <div class="section-title-wrap">
+          <div class="section-title">Pulizie giornaliere</div>
+          <div class="section-desc">Da fare ogni giorno</div>
+        </div>
+        <div class="section-badge" id="badge-daily">0/0</div>
+        <div class="chevron" id="chevron-daily">▼</div>
+      </div>
+      <div class="section-body open" id="body-daily">
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-daily" style="width:0%"></div></div>
+        <div class="check-actions">
+          <button class="check-action-btn" onclick="selectAll('daily',true)">Tutto ✓</button>
+          <button class="check-action-btn" onclick="selectAll('daily',false)">Deseleziona</button>
+        </div>
+        <div class="checklist" id="checklist-daily"></div>
+      </div>
+    </div>
+
+    <!-- SETTIMANALI -->
+    <div class="section-card">
+      <div class="section-header" onclick="toggleSection('weekly')">
+        <div class="section-icon weekly">🔧</div>
+        <div class="section-title-wrap">
+          <div class="section-title">Pulizie settimanali</div>
+          <div class="section-desc">Solo quando dovuto</div>
+        </div>
+        <div class="section-badge" id="badge-weekly">0/0</div>
+        <div class="chevron" id="chevron-weekly">▼</div>
+      </div>
+      <div class="section-body" id="body-weekly">
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-weekly" style="width:0%"></div></div>
+        <div class="check-actions">
+          <button class="check-action-btn" onclick="selectAll('weekly',true)">Tutto ✓</button>
+          <button class="check-action-btn" onclick="selectAll('weekly',false)">Deseleziona</button>
+        </div>
+        <div class="checklist" id="checklist-weekly"></div>
+      </div>
+    </div>
+
+    <!-- MENSILI -->
+    <div class="section-card">
+      <div class="section-header" onclick="toggleSection('monthly')">
+        <div class="section-icon monthly">📅</div>
+        <div class="section-title-wrap">
+          <div class="section-title">Pulizie mensili</div>
+          <div class="section-desc">Solo quando dovuto</div>
+        </div>
+        <div class="section-badge" id="badge-monthly">0/0</div>
+        <div class="chevron" id="chevron-monthly">▼</div>
+      </div>
+      <div class="section-body" id="body-monthly">
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-monthly" style="width:0%"></div></div>
+        <div class="check-actions">
+          <button class="check-action-btn" onclick="selectAll('monthly',true)">Tutto ✓</button>
+          <button class="check-action-btn" onclick="selectAll('monthly',false)">Deseleziona</button>
+        </div>
+        <div class="checklist" id="checklist-monthly"></div>
+      </div>
+    </div>
+
+    <!-- OLIO FRIGGITRICE -->
+    <div class="section-card">
+      <div class="section-header" onclick="toggleSection('olio')">
+        <div class="section-icon olio">🛢️</div>
+        <div class="section-title-wrap">
+          <div class="section-title">Olio friggitrice</div>
+          <div class="section-desc">Filtraggio / sostituzione</div>
+        </div>
+        <div class="section-badge" id="badge-olio">—</div>
+        <div class="chevron" id="chevron-olio">▼</div>
+      </div>
+      <div class="section-body" id="body-olio">
+        <div class="form-body">
+          <div class="form-grid">
+            <div class="form-row">
+              <label class="form-label">Vasca</label>
+              <select class="form-select" id="olio-vasca">
+                <option value="Vasca 1">Vasca 1</option>
+                <option value="Vasca 2">Vasca 2</option>
+                <option value="Entrambe">Entrambe</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Azione</label>
+              <select class="form-select" id="olio-azione">
+                <option value="Filtraggio">Filtraggio</option>
+                <option value="Cambio completo">Cambio completo</option>
+                <option value="Integrazione">Integrazione</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Litri (se cambio/integrazione)</label>
+            <input class="form-input" id="olio-litri" type="number" step="0.5" placeholder="Es. 8"/>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Note</label>
+            <textarea class="form-textarea" id="olio-note" placeholder="Note olio..."></textarea>
+          </div>
+          <button class="submit-btn" style="position:static;width:100%;margin-top:4px;padding:12px;font-size:14px;" onclick="salvaOlio()">Salva registro olio</button>
+          <div id="olio-msg" style="font-size:12px;margin-top:8px;color:var(--ok);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAPPETINI PIASTRA -->
+    <div class="section-card" style="margin-bottom:80px">
+      <div class="section-header" onclick="toggleSection('tappetini')">
+        <div class="section-icon tappetini">🔲</div>
+        <div class="section-title-wrap">
+          <div class="section-title">Tappetini piastra</div>
+          <div class="section-desc">Vetroceramica / sostituzione</div>
+        </div>
+        <div class="section-badge" id="badge-tappetini">—</div>
+        <div class="chevron" id="chevron-tappetini">▼</div>
+      </div>
+      <div class="section-body" id="body-tappetini">
+        <div class="form-body">
+          <div class="form-grid">
+            <div class="form-row">
+              <label class="form-label">Azione</label>
+              <select class="form-select" id="tap-azione">
+                <option value="Sostituzione">Sostituzione</option>
+                <option value="Lavaggio profondo">Lavaggio profondo</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">N° tappetino</label>
+              <input class="form-input" id="tap-numero" placeholder="Es. 1"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Note</label>
+            <textarea class="form-textarea" id="tap-note" placeholder="Note tappetini..."></textarea>
+          </div>
+          <button class="submit-btn" style="position:static;width:100%;margin-top:4px;padding:12px;font-size:14px;" onclick="salvaTappetini()">Salva registro tappetini</button>
+          <div id="tap-msg" style="font-size:12px;margin-top:8px;color:var(--ok);"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-compila -->
+
+  <!-- ===== TAB: STORICO ===== -->
+  <div id="tab-storico" class="main hidden">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <select class="form-select" id="storico-filter" onchange="loadStorico()" style="flex:1;min-width:120px;padding:9px 12px;font-size:13px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;color:var(--text);">
+        <option value="all">Tutti i tipi</option>
+        <option value="GIORNALIERA">Giornaliere</option>
+        <option value="SETTIMANALE">Settimanali</option>
+        <option value="MENSILE">Mensili</option>
+        <option value="OLIO">Olio</option>
+        <option value="TAPPETINI">Tappetini</option>
+      </select>
+      <button onclick="loadStorico()" style="padding:9px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px;">Aggiorna</button>
+    </div>
+    <div id="storico-list"></div>
+  </div>
+
+  <!-- ===== TAB: OPERATORI ===== -->
+  <div id="tab-operatori" class="main hidden">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+      Imposta il nome di ogni operatore. I numeri rimangono — sostituisci il nome quando assumi qualcuno di nuovo.
+    </div>
+    <div id="op-edit-list"></div>
+    <button onclick="salvaOperatori()" class="submit-btn" style="position:static;margin-top:12px;">Salva operatori</button>
+    <div id="op-msg" style="font-size:13px;margin-top:10px;color:var(--ok);"></div>
+  </div>
+
+</div><!-- /appMain -->
+
+<!-- SUBMIT BAR FISSA (solo tab compila) -->
+<div class="submit-bar" id="submitBar">
+  <button class="submit-btn" id="mainSubmitBtn" onclick="salvaChecklist()">
+    Salva registro pulizie
+  </button>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+
+<script>
+// ════════════════════════════════════════════
+// CONFIG & STATO
+// ════════════════════════════════════════════
+
+const LOCALE = 'garage';
+const LOCALE_NOME = 'Pizzeria Hamburgheria Garage';
+
+// Configurazione aree pulizia
+const AREE = {
+  GIORNALIERA: [
+    'Piano di lavoro principale',
+    'Piano di lavoro zona pizza',
+    'Piano di lavoro zona hamburger',
+    'Friggitrice (esterno)',
+    'Piano cottura hamburger (esterno)',
+    'Microonde',
+    'Tostapane',
+    'Affettatrice',
+    'Mobile porta piatti',
+    'Mensola e pensili porta vettovaglie',
+    'Lavastoviglie (esterno)',
+    'Lavabicchieri (esterno)',
+    'Lavello 1 buca',
+    'Lavello 2 buche',
+    'Bidone spazzatura grande',
+    'Bidone spazzatura piccolo',
+    'Bidone smaltimento vetro',
+    'Pavimento cucina',
+    'Mobile porta scope',
+    'Cassettiera',
+  ],
+  SETTIMANALE: [
+    'Cappa — filtri esterni',
+    'Pareti lavabili cucina',
+    'Celle frigo — guarnizioni e ripiani',
+    'Armadi frigo — guarnizioni e ripiani',
+    'Banco frigo — guarnizioni e ripiani',
+    'Friggitrice (interno/vasche)',
+    'Piano cottura hamburger (profondo)',
+    'Lavastoviglie (interno/bracci)',
+    'Lavabicchieri (interno)',
+    'Planetaria (smontaggio e pulizia)',
+    'Mobile porta accessori',
+    'Retro e sotto le attrezzature',
+  ],
+  MENSILE: [
+    'Scaffalature profonde e angoli',
+    'Cappa — pulizia profonda filtri',
+    'Magazzino 1 — scaffali e pavimento',
+    'Pozzetto congelatore (sbrinamento e pulizia)',
+    'Vetrine refrigerate porta alimenti (profondo)',
+    'Banco frigo dolci (profondo)',
+    'Banco frigo hamburger (profondo)',
+    'Colonna frigo negativo (profondo)',
+    'Colonna frigo positivo impasto pizza (profondo)',
+    'Pulizia soffitto e pareti alte',
+    'Trappole grasso scarico',
+  ]
+};
+
+// Operatori (placeholder — modificabili dal tab Operatori)
+let OPERATORI = [
+  { id: 'OP01', nome: 'Operatore 1' },
+  { id: 'OP02', nome: 'Operatore 2' },
+  { id: 'OP03', nome: 'Operatore 3' },
+  { id: 'OP04', nome: 'Operatore 4' },
+  { id: 'OP05', nome: 'Operatore 5' },
+  { id: 'OP06', nome: 'Operatore 6' },
+  { id: 'OP07', nome: 'Operatore 7' },
+  { id: 'OP08', nome: 'Operatore 8' },
+];
+
+let selectedOp = null;
+let checkState = { daily: {}, weekly: {}, monthly: {} };
+let db = null;
+let currentTab = 'compila';
+
+// ════════════════════════════════════════════
+// FIREBASE CONFIG
+// ════════════════════════════════════════════
+
+function getFirebaseConfig() {
+  try { return JSON.parse(localStorage.getItem('fb_config_' + LOCALE) || 'null'); } catch(e) { return null; }
+}
+
+function saveFirebaseConfig() {
+  const apiKey = document.getElementById('fbApiKey').value.trim();
+  const projectId = document.getElementById('fbProjectId').value.trim();
+  const appId = document.getElementById('fbAppId').value.trim();
+  if (!apiKey || !projectId || !appId) { showToast('Inserisci tutti i campi', 'err'); return; }
+  const cfg = { apiKey, authDomain: projectId + '.firebaseapp.com', projectId, storageBucket: projectId + '.appspot.com', appId };
+  localStorage.setItem('fb_config_' + LOCALE, JSON.stringify(cfg));
+  location.reload();
+}
+
+function initFirebase(cfg) {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    else firebase.app();
+    db = firebase.firestore();
+    db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+    return true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+
+window.addEventListener('DOMContentLoaded', () => {
+  updateHeaderDate();
+  setInterval(updateHeaderDate, 60000);
+
+  try {
+    db = firebase.firestore();
+    db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+  } catch(e) {
+    console.error('Firestore error:', e);
+  }
+
+  loadOperatori();
+  initChecklist();
+  checkStatoGiornaliero();
+});
+
+function updateHeaderDate() {
+  const now = new Date();
+  const days = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const d = days[now.getDay()] + ' ' +
+    String(now.getDate()).padStart(2,'0') + '/' +
+    String(now.getMonth()+1).padStart(2,'0');
+  const h = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('headerDate').innerHTML = d + '<br>' + h;
+}
+
+// ════════════════════════════════════════════
+// OPERATORI
+// ════════════════════════════════════════════
+
+function loadOperatori() {
+  if (!db) return;
+  db.collection('config_' + LOCALE).doc('operatori').get().then(doc => {
+    if (doc.exists && doc.data().lista) {
+      OPERATORI = doc.data().lista;
+    }
+    renderOpGrid();
+    renderOpEdit();
+  }).catch(() => {
+    renderOpGrid();
+    renderOpEdit();
+  });
+}
+
+function renderOpGrid() {
+  const grid = document.getElementById('opGrid');
+  grid.innerHTML = OPERATORI.map(op => `
+    <div class="op-btn ${selectedOp === op.id ? 'selected' : ''}"
+         onclick="selectOp('${op.id}')" id="opbtn-${op.id}">
+      <div style="font-size:11px;color:var(--muted)">${op.id}</div>
+      <div style="font-size:12px;margin-top:2px;">${op.nome.split(' ')[0]}</div>
+    </div>
+  `).join('');
+}
+
+function selectOp(id) {
+  selectedOp = id;
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('opbtn-' + id);
+  if (btn) btn.classList.add('selected');
+}
+
+function renderOpEdit() {
+  const list = document.getElementById('op-edit-list');
+  list.innerHTML = OPERATORI.map((op, i) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2);min-width:36px;">${op.id}</div>
+      <input class="form-input" style="flex:1;padding:10px 12px;font-size:14px;"
+             id="op-name-${i}" value="${op.nome}" placeholder="Nome operatore"/>
+    </div>
+  `).join('');
+}
+
+function salvaOperatori() {
+  OPERATORI.forEach((op, i) => {
+    const inp = document.getElementById('op-name-' + i);
+    if (inp) op.nome = inp.value.trim() || op.nome;
+  });
+  if (!db) { showToast('Firebase non connesso', 'err'); return; }
+  db.collection('config_' + LOCALE).doc('operatori').set({ lista: OPERATORI })
+    .then(() => { showToast('Operatori salvati', 'ok'); renderOpGrid(); document.getElementById('op-msg').textContent = ''; })
+    .catch(e => { document.getElementById('op-msg').textContent = 'Errore: ' + e.message; });
+}
+
+// ════════════════════════════════════════════
+// CHECKLIST
+// ════════════════════════════════════════════
+
+function initChecklist() {
+  ['daily','weekly','monthly'].forEach(type => {
+    const freq = type === 'daily' ? 'GIORNALIERA' : type === 'weekly' ? 'SETTIMANALE' : 'MENSILE';
+    const items = AREE[freq];
+    checkState[type] = {};
+    // Default: giornaliere tutte checked, sett/mensili tutte unchecked
+    items.forEach(item => { checkState[type][item] = (type === 'daily'); });
+    renderChecklist(type);
+  });
+}
+
+function renderChecklist(type) {
+  const freq = type === 'daily' ? 'GIORNALIERA' : type === 'weekly' ? 'SETTIMANALE' : 'MENSILE';
+  const items = AREE[freq];
+  const container = document.getElementById('checklist-' + type);
+  container.innerHTML = items.map(item => {
+    const checked = checkState[type][item];
+    return `
+      <div class="check-item" onclick="toggleCheck('${type}','${item.replace(/'/g,"\\'")}')">
+        <div class="check-box ${checked ? 'checked' : ''}" id="box-${type}-${btoa(encodeURIComponent(item)).replace(/=/g,'')}">
+          <span class="check-tick">✓</span>
+        </div>
+        <div class="check-label ${checked ? 'checked' : ''}" id="lbl-${type}-${btoa(encodeURIComponent(item)).replace(/=/g,'')}">${item}</div>
+      </div>
+    `;
+  }).join('');
+  updateBadge(type);
+}
+
+function toggleCheck(type, item) {
+  checkState[type][item] = !checkState[type][item];
+  const key = btoa(encodeURIComponent(item)).replace(/=/g,'');
+  const box = document.getElementById('box-' + type + '-' + key);
+  const lbl = document.getElementById('lbl-' + type + '-' + key);
+  if (box) box.classList.toggle('checked', checkState[type][item]);
+  if (lbl) lbl.classList.toggle('checked', checkState[type][item]);
+  updateBadge(type);
+}
+
+function selectAll(type, val) {
+  Object.keys(checkState[type]).forEach(k => { checkState[type][k] = val; });
+  renderChecklist(type);
+}
+
+function updateBadge(type) {
+  const items = Object.keys(checkState[type]);
+  const done = items.filter(k => checkState[type][k]).length;
+  const total = items.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+
+  const badge = document.getElementById('badge-' + type);
+  const prog = document.getElementById('progress-' + type);
+  if (badge) {
+    badge.textContent = done + '/' + total;
+    badge.className = 'section-badge' + (done === total ? ' done' : done > 0 ? ' partial' : '');
+  }
+  if (prog) prog.style.width = pct + '%';
+}
+
+function toggleSection(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chevron-' + id);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+// ════════════════════════════════════════════
+// STATO GIORNALIERO
+// ════════════════════════════════════════════
+
+async function checkStatoGiornaliero() {
+  if (!db) return;
+  const today = todayStr();
+  try {
+    const snap = await db.collection('pulizie_' + LOCALE)
+      .where('data', '==', today)
+      .where('tipo', '==', 'GIORNALIERA')
+      .limit(1).get();
+
+    const dot = document.getElementById('statoDot');
+    const txt = document.getElementById('statoText');
+    const sub = document.getElementById('statoSub');
+
+    if (snap.empty) {
+      dot.className = 'stato-dot pending';
+      txt.textContent = 'Pulizie giornaliere non ancora registrate';
+      sub.textContent = 'Compila e salva il registro prima della chiusura';
+    } else {
+      const d = snap.docs[0].data();
+      const mancanti = d.mancanti || [];
+      if (mancanti.length === 0) {
+        dot.className = 'stato-dot ok';
+        txt.textContent = 'Pulizie giornaliere completate ✓';
+        sub.textContent = 'Operatore: ' + (d.operatore_nome || d.operatore);
+      } else {
+        dot.className = 'stato-dot pending';
+        txt.textContent = 'Registrate con ' + mancanti.length + ' mancanze';
+        sub.textContent = 'Mancanti: ' + mancanti.slice(0,2).join(', ') + (mancanti.length > 2 ? '...' : '');
+      }
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ════════════════════════════════════════════
+// SALVATAGGIO CHECKLIST
+// ════════════════════════════════════════════
+
+async function salvaChecklist() {
+  if (!selectedOp) { showToast('Seleziona un operatore', 'err'); return; }
+  if (!db) { showToast('Firebase non connesso', 'err'); return; }
+
+  // Determina quale tab è aperto nella sezione checklist
+  // Salva tutto quello che è stato compilato (giornaliere + eventuali sett/mensili)
+  const opObj = OPERATORI.find(o => o.id === selectedOp) || { id: selectedOp, nome: selectedOp };
+  const now = new Date();
+  const today = todayStr();
+  const ora = now.toTimeString().slice(0,5);
+
+  showLoading(true);
+
+  try {
+    const batch = db.batch();
+
+    // GIORNALIERE
+    const dailyItems = AREE.GIORNALIERA;
+    const dailyDone = dailyItems.filter(i => checkState.daily[i]);
+    const dailyMancanti = dailyItems.filter(i => !checkState.daily[i]);
+
+    const docDaily = db.collection('pulizie_' + LOCALE).doc();
+    batch.set(docDaily, {
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      data: today, ora,
+      tipo: 'GIORNALIERA',
+      locale: LOCALE,
+      locale_nome: LOCALE_NOME,
+      operatore: opObj.id,
+      operatore_nome: opObj.nome,
+      completate: dailyDone,
+      mancanti: dailyMancanti,
+      totale_attese: dailyItems.length,
+      totale_completate: dailyDone.length,
+      esito: dailyMancanti.length === 0 ? 'OK' : dailyMancanti.length < 3 ? 'PARZIALE' : 'NON OK',
+      note: ''
+    });
+
+    // SETTIMANALI (solo se almeno una spuntata)
+    const weeklyDone = AREE.SETTIMANALE.filter(i => checkState.weekly[i]);
+    if (weeklyDone.length > 0) {
+      const docWeekly = db.collection('pulizie_' + LOCALE).doc();
+      batch.set(docWeekly, {
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        data: today, ora,
+        tipo: 'SETTIMANALE',
+        locale: LOCALE,
+        locale_nome: LOCALE_NOME,
+        operatore: opObj.id,
+        operatore_nome: opObj.nome,
+        completate: weeklyDone,
+        mancanti: AREE.SETTIMANALE.filter(i => !checkState.weekly[i]),
+        totale_attese: AREE.SETTIMANALE.length,
+        totale_completate: weeklyDone.length,
+        esito: 'OK',
+        note: ''
+      });
+    }
+
+    // MENSILI (solo se almeno una spuntata)
+    const monthlyDone = AREE.MENSILE.filter(i => checkState.monthly[i]);
+    if (monthlyDone.length > 0) {
+      const docMonthly = db.collection('pulizie_' + LOCALE).doc();
+      batch.set(docMonthly, {
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        data: today, ora,
+        tipo: 'MENSILE',
+        locale: LOCALE,
+        locale_nome: LOCALE_NOME,
+        operatore: opObj.id,
+        operatore_nome: opObj.nome,
+        completate: monthlyDone,
+        mancanti: AREE.MENSILE.filter(i => !checkState.monthly[i]),
+        totale_attese: AREE.MENSILE.length,
+        totale_completate: monthlyDone.length,
+        esito: 'OK',
+        note: ''
+      });
+    }
+
+    await batch.commit();
+    showToast('Registro salvato ✓', 'ok');
+    checkStatoGiornaliero();
+
+  } catch(e) {
+    showToast('Errore: ' + e.message, 'err');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ════════════════════════════════════════════
+// OLIO & TAPPETINI
+// ════════════════════════════════════════════
+
+async function salvaOlio() {
+  if (!selectedOp) { showToast('Seleziona un operatore prima', 'err'); return; }
+  if (!db) return;
+  const opObj = OPERATORI.find(o => o.id === selectedOp) || { id: selectedOp, nome: selectedOp };
+  try {
+    await db.collection('olio_' + LOCALE).add({
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      data: todayStr(),
+      ora: new Date().toTimeString().slice(0,5),
+      operatore: opObj.id,
+      operatore_nome: opObj.nome,
+      vasca: document.getElementById('olio-vasca').value,
+      azione: document.getElementById('olio-azione').value,
+      litri: document.getElementById('olio-litri').value || null,
+      note: document.getElementById('olio-note').value,
+    });
+    document.getElementById('olio-msg').textContent = '✓ Registro olio salvato';
+    document.getElementById('olio-litri').value = '';
+    document.getElementById('olio-note').value = '';
+    setTimeout(() => { document.getElementById('olio-msg').textContent = ''; }, 3000);
+  } catch(e) { document.getElementById('olio-msg').style.color = 'var(--danger)'; document.getElementById('olio-msg').textContent = 'Errore: ' + e.message; }
+}
+
+async function salvaTappetini() {
+  if (!selectedOp) { showToast('Seleziona un operatore prima', 'err'); return; }
+  if (!db) return;
+  const opObj = OPERATORI.find(o => o.id === selectedOp) || { id: selectedOp, nome: selectedOp };
+  try {
+    await db.collection('tappetini_' + LOCALE).add({
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      data: todayStr(),
+      ora: new Date().toTimeString().slice(0,5),
+      operatore: opObj.id,
+      operatore_nome: opObj.nome,
+      azione: document.getElementById('tap-azione').value,
+      numero: document.getElementById('tap-numero').value,
+      note: document.getElementById('tap-note').value,
+    });
+    document.getElementById('tap-msg').textContent = '✓ Registro tappetini salvato';
+    document.getElementById('tap-numero').value = '';
+    document.getElementById('tap-note').value = '';
+    setTimeout(() => { document.getElementById('tap-msg').textContent = ''; }, 3000);
+  } catch(e) { document.getElementById('tap-msg').style.color = 'var(--danger)'; document.getElementById('tap-msg').textContent = 'Errore: ' + e.message; }
+}
+
+// ════════════════════════════════════════════
+// STORICO
+// ════════════════════════════════════════════
+
+async function loadStorico() {
+  if (!db) return;
+  const filter = document.getElementById('storico-filter').value;
+  const list = document.getElementById('storico-list');
+  list.innerHTML = '<div class="empty"><div>Caricamento...</div></div>';
+
+  try {
+    let query = db.collection('pulizie_' + LOCALE)
+      .orderBy('timestamp', 'desc').limit(30);
+    if (filter !== 'all') query = db.collection('pulizie_' + LOCALE).where('tipo','==',filter).orderBy('timestamp','desc').limit(30);
+
+    // olio e tappetini hanno collection separata
+    const snaps = [await query.get()];
+    if (filter === 'all' || filter === 'OLIO') snaps.push(await db.collection('olio_' + LOCALE).orderBy('timestamp','desc').limit(10).get());
+    if (filter === 'all' || filter === 'TAPPETINI') snaps.push(await db.collection('tappetini_' + LOCALE).orderBy('timestamp','desc').limit(10).get());
+
+    let docs = [];
+    snaps.forEach(snap => snap.forEach(d => docs.push({ id: d.id, ...d.data(), _col: d.ref.parent.id })));
+    docs.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+    docs = docs.slice(0,40);
+
+    if (!docs.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div>Nessun registro trovato</div></div>'; return; }
+
+    list.innerHTML = docs.map(d => {
+      const tipo = d.tipo || (d._col.includes('olio') ? 'OLIO' : 'TAPPETINI');
+      const esito = d.esito || 'OK';
+      const esitoClass = esito === 'OK' ? 'ok' : esito === 'PARZIALE' ? 'partial' : 'ko';
+      const mancantiTxt = d.mancanti && d.mancanti.length ? d.mancanti.slice(0,3).join(', ') + (d.mancanti.length > 3 ? ' +altri' : '') : '';
+      const completateTxt = d.completate ? d.totale_completate + '/' + d.totale_attese + ' completate' : (d.azione || '');
+      return `
+        <div class="storico-item">
+          <div class="storico-header">
+            <div>
+              <div style="font-size:13px;font-weight:700;">${tipo}</div>
+              <div class="storico-date">${d.data || ''} ${d.ora || ''}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              <div class="storico-op">${d.operatore_nome || d.operatore || '—'}</div>
+              <span class="storico-badge ${esitoClass}">${esito}</span>
+            </div>
+          </div>
+          ${completateTxt ? `<div class="storico-detail">${completateTxt}</div>` : ''}
+          ${mancantiTxt ? `<div class="storico-detail" style="color:var(--warn)">⚠ Mancanti: ${mancantiTxt}</div>` : ''}
+          ${d.note ? `<div class="storico-detail" style="margin-top:2px">📝 ${d.note}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+  } catch(e) {
+    list.innerHTML = '<div class="empty">Errore caricamento: ' + e.message + '</div>';
+  }
+}
+
+// ════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['compila','storico','operatori'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t === tab);
+  });
+  document.getElementById('submitBar').style.display = (tab === 'compila') ? 'block' : 'none';
+  if (tab === 'storico') loadStorico();
+}
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function showLoading(v) {
+  document.getElementById('loadingOverlay').classList.toggle('show', v);
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => { t.className = 'toast'; }, 2800);
+}
+
+// ════════════════════════════════════════════
+// SERVICE WORKER (offline support)
+// ════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw-garage.js').catch(() => {});
+}
+</script>
+
+</body>
+</html>
